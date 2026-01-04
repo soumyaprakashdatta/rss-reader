@@ -123,3 +123,59 @@ func UpsertItems(db *sql.DB, items []model.Item) error {
 	}
 	return nil
 }
+
+// DeleteFeed deletes a feed by ID. Associated items are deleted via ON DELETE CASCADE.
+func DeleteFeed(db *sql.DB, feedID int) error {
+	_, err := db.Exec("DELETE FROM feeds WHERE id = ?", feedID)
+	return err
+}
+
+// GetItemsPaginated returns paginated items, optionally filtered by feedID
+func GetItemsPaginated(db *sql.DB, feedID *int, page, pageSize int) ([]model.Item, int, error) {
+	var countQuery string
+	var itemsQuery string
+	var args []interface{}
+
+	offset := (page - 1) * pageSize
+
+	if feedID != nil {
+		countQuery = "SELECT COUNT(*) FROM items WHERE feed_id = ?"
+		itemsQuery = "SELECT id, feed_id, title, link, description, published_at, guid FROM items WHERE feed_id = ? ORDER BY published_at DESC LIMIT ? OFFSET ?"
+		args = []interface{}{*feedID, pageSize, offset}
+	} else {
+		countQuery = "SELECT COUNT(*) FROM items"
+		itemsQuery = "SELECT id, feed_id, title, link, description, published_at, guid FROM items ORDER BY published_at DESC LIMIT ? OFFSET ?"
+		args = []interface{}{pageSize, offset}
+	}
+
+	// Get total count
+	var totalCount int
+	if feedID != nil {
+		err := db.QueryRow(countQuery, *feedID).Scan(&totalCount)
+		if err != nil {
+			return nil, 0, err
+		}
+	} else {
+		err := db.QueryRow(countQuery).Scan(&totalCount)
+		if err != nil {
+			return nil, 0, err
+		}
+	}
+
+	// Get items
+	rows, err := db.Query(itemsQuery, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var items []model.Item
+	for rows.Next() {
+		var i model.Item
+		if err := rows.Scan(&i.ID, &i.FeedID, &i.Title, &i.Link, &i.Description, &i.PublishedAt, &i.GUID); err != nil {
+			return nil, 0, err
+		}
+		items = append(items, i)
+	}
+	return items, totalCount, nil
+}

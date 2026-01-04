@@ -52,6 +52,7 @@ func main() {
 
 	r.Get("/feeds", handler.GetFeeds)
 	r.Post("/feeds", handler.AddFeed)
+	r.Delete("/feeds/{id}", handler.DeleteFeed)
 	r.Get("/items", handler.GetItems)
 
 	port := getEnv("PORT", "8080")

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Rss, Layers, Hash } from 'lucide-react';
+import { Plus, Rss, Layers, Hash, Trash2 } from 'lucide-react';
 
-const Sidebar = ({ feeds, onAddFeed, onSelectFeed, selectedFeedId }) => {
+const Sidebar = ({ feeds, onAddFeed, onSelectFeed, onDeleteFeed, selectedFeedId }) => {
     const [isAdding, setIsAdding] = useState(false);
     const [url, setUrl] = useState('');
 
@@ -11,6 +11,13 @@ const Sidebar = ({ feeds, onAddFeed, onSelectFeed, selectedFeedId }) => {
         onAddFeed(url);
         setUrl('');
         setIsAdding(false);
+    };
+
+    const handleDelete = (e, feedId) => {
+        e.stopPropagation();
+        if (window.confirm('Are you sure you want to delete this feed? All associated articles will also be removed.')) {
+            onDeleteFeed(feedId);
+        }
     };
 
     return (
@@ -67,17 +74,26 @@ const Sidebar = ({ feeds, onAddFeed, onSelectFeed, selectedFeedId }) => {
                 </div>
 
                 {feeds.map(feed => (
-                    <button
+                    <div
                         key={feed.id}
-                        onClick={() => onSelectFeed(feed.id)}
-                        className={`w-full px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all duration-200 group ${selectedFeedId === feed.id
+                        className={`w-full px-3 py-2.5 rounded-lg flex items-center gap-3 transition-all duration-200 group cursor-pointer ${selectedFeedId === feed.id
                             ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-sm'
-                            : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200 hover:pl-4'
+                            : 'text-gray-400 hover:bg-gray-800/50 hover:text-gray-200'
                             }`}
+                        onClick={() => onSelectFeed(feed.id)}
                     >
                         <div className={`w-1.5 h-1.5 rounded-full ${selectedFeedId === feed.id ? 'bg-blue-400' : 'bg-gray-600 group-hover:bg-gray-500'}`} />
-                        <span className="font-medium text-sm truncate text-left">{feed.title || feed.url}</span>
-                    </button>
+                        <span className="font-medium text-sm truncate text-left flex-1">{feed.title || feed.url}</span>
+                        {selectedFeedId === feed.id && (
+                            <button
+                                onClick={(e) => handleDelete(e, feed.id)}
+                                className="p-1 hover:bg-red-500/20 rounded text-gray-400 hover:text-red-400 transition-colors"
+                                title="Delete Feed"
+                            >
+                                <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                        )}
+                    </div>
                 ))}
             </div>
 

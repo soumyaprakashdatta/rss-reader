@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { LayoutGrid, List, ChevronLeft, ChevronRight } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import ArticleCard from './components/ArticleCard';
+import ArticleListItem from './components/ArticleListItem';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
@@ -9,15 +11,25 @@ function App() {
   const [items, setItems] = useState([]);
   const [selectedFeedId, setSelectedFeedId] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
     fetchFeeds();
-    fetchItems();
-
-    // Auto-refresh items every 30 seconds
-    const interval = setInterval(fetchItems, 30000);
-    return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    fetchItems();
+  }, [selectedFeedId, currentPage]);
+
+  // Reset to page 1 when changing feed
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedFeedId]);
 
   const fetchFeeds = async () => {
     try {
@@ -33,13 +45,21 @@ function App() {
 
   const fetchItems = async () => {
     try {
-      const res = await fetch(`${API_URL}/items`);
+      setLoading(true);
+      let url = `${API_URL}/items?page=${currentPage}&page_size=${pageSize}`;
+      if (selectedFeedId) {
+        url += `&feed_id=${selectedFeedId}`;
+      }
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
-        setItems(data);
+        setItems(data.items || []);
+        setTotalCount(data.total_count || 0);
       }
     } catch (err) {
       console.error("Failed to fetch items", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -63,15 +83,46 @@ function App() {
     }
   };
 
-  const filteredItems = selectedFeedId
-    ? items.filter(i => i.feed_id === selectedFeedId)
-    : items;
+  const handleDeleteFeed = async (feedId) => {
+    try {
+      const res = await fetch(`${API_URL}/feeds/${feedId}`, {
+        method: 'DELETE'
+      });
+      if (res.ok) {
+        fetchFeeds();
+        if (selectedFeedId === feedId) {
+          setSelectedFeedId(null);
+        }
+        fetchItems();
+      } else {
+        alert("Failed to delete feed");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error deleting feed");
+    }
+  };
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
   return (
     <div className="flex min-h-screen">
       <Sidebar
         feeds={feeds}
         onAddFeed={handleAddFeed}
+        onDeleteFeed={handleDeleteFeed}
         onSelectFeed={setSelectedFeedId}
         selectedFeedId={selectedFeedId}
       />
@@ -86,12 +137,43 @@ function App() {
                   : 'Latest Articles'}
               </h2>
               <p className="text-gray-500 text-sm mt-2 font-medium">
-                {filteredItems.length} unread updates
+                {totalCount} articles {selectedFeedId ? 'in this feed' : 'total'}
               </p>
+            </div>
+
+            <div className="flex items-center gap-4">
+              {/* View Toggle */}
+              <div className="flex items-center gap-1 bg-gray-800/50 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'grid'
+                    ? 'bg-blue-500/20 text-blue-400'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                    }`}
+                  title="Grid View"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-md transition-all ${viewMode === 'list'
+                    ? 'bg-blue-500/20 text-blue-400'
+                    : 'text-gray-400 hover:text-white hover:bg-gray-700/50'
+                    }`}
+                  title="List View"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </header>
 
-          {filteredItems.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-24 text-gray-500">
+              <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-4 text-sm">Loading articles...</p>
+            </div>
+          ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-gray-500 glass-card rounded-2xl mx-auto max-w-lg text-center p-8">
               <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -102,11 +184,78 @@ function App() {
               <p className="text-sm">Add a new RSS feed from the sidebar to get started.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-12">
-              {filteredItems.map(item => (
-                <ArticleCard key={item.id} item={item} />
-              ))}
-            </div>
+            <>
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6 pb-6">
+                  {items.map(item => (
+                    <ArticleCard key={item.id} item={item} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-3 pb-6">
+                  {items.map(item => (
+                    <ArticleListItem key={item.id} item={item} />
+                  ))}
+                </div>
+              )}
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 py-8 border-t border-gray-800/50">
+                  <button
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentPage === 1
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
+                      }`}
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Previous
+                  </button>
+
+                  <div className="flex items-center gap-2">
+                    {/* Show page numbers */}
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`w-10 h-10 rounded-lg transition-all font-medium ${currentPage === pageNum
+                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/20'
+                            : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
+                            }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${currentPage === totalPages
+                      ? 'text-gray-600 cursor-not-allowed'
+                      : 'text-gray-300 hover:bg-gray-800/50 hover:text-white'
+                      }`}
+                  >
+                    Next
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
