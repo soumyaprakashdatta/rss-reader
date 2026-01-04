@@ -2,40 +2,77 @@
 
 @import "tailwindcss";
 
+/* Dark theme (default) */
 :root {
   --bg-dark: #0f1115;
   --bg-card: #161b22;
+  --bg-main: #0f1115;
+  --bg-sidebar: rgba(13, 17, 23, 0.95);
+  --bg-input: #0d1117;
+  --bg-hover: rgba(55, 65, 81, 0.5);
   --text-primary: #e6edf3;
   --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
   --accent: #58a6ff;
   --accent-hover: #1f6feb;
   --border: #30363d;
+  --border-light: rgba(48, 54, 61, 0.6);
+  --glass-card-bg: linear-gradient(145deg, rgba(35, 39, 46, 0.95) 0%, rgba(22, 27, 34, 0.98) 100%);
+  --glass-card-border: rgba(48, 54, 61, 0.5);
+  --scrollbar-thumb: #30363d;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-dark: #ffffff;
+  --bg-card: #f8fafc;
+  --bg-main: #f1f5f9;
+  --bg-sidebar: rgba(255, 255, 255, 0.95);
+  --bg-input: #ffffff;
+  --bg-hover: rgba(226, 232, 240, 0.8);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --border: #e2e8f0;
+  --border-light: rgba(226, 232, 240, 0.8);
+  --glass-card-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.98) 100%);
+  --glass-card-border: rgba(226, 232, 240, 0.8);
+  --scrollbar-thumb: #cbd5e1;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   font-family: 'Inter', sans-serif;
-  background-color: var(--bg-dark);
+  background-color: var(--bg-main);
   color: var(--text-primary);
   /* Subtle mesh gradient background */
   background-image:
     radial-gradient(circle at 15% 50%, rgba(88, 166, 255, 0.08), transparent 25%),
     radial-gradient(circle at 85% 30%, rgba(238, 75, 43, 0.05), transparent 25%);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+[data-theme="light"] body {
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(59, 130, 246, 0.05), transparent 25%),
+    radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.03), transparent 25%);
 }
 
 @utility glass {
-  background: rgba(13, 17, 23, 0.95);
+  background: var(--bg-sidebar);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-right: 1px solid rgba(48, 54, 61, 0.6);
+  border-right: 1px solid var(--border-light);
 }
 
 @utility glass-card {
-  background: linear-gradient(145deg, rgba(35, 39, 46, 0.95) 0%, rgba(22, 27, 34, 0.98) 100%);
+  background: var(--glass-card-bg);
   backdrop-filter: blur(8px);
-  border: 1px solid rgba(48, 54, 61, 0.5);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--glass-card-border);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.05);
 }
 
 /* Custom Scrollbar */
