@@ -5,8 +5,8 @@ A modern RSS reader application with a Go backend and React frontend.
 ## Prerequisites
 
 - [Docker](https://www.docker.com/) and Docker Compose
-- [Go](https://golang.org/) 1.21+ (for backend development)
-- [Node.js](https://nodejs.org/) 18+ (for frontend development)
+- [Go](https://golang.org/) 1.25+ (for backend development)
+- [Node.js](https://nodejs.org/) 24+ (for frontend development)
 
 ---
 
